@@ -1,70 +1,12 @@
 # Graphiki
 
-Collaborative network graph visualization and editing platform. Built with Next.js, Sigma.js, Memgraph, and PostgreSQL.
+Graphiki is a wiki for graphs. It lets teams build, explore, and curate knowledge graphs through a browser — the same way a traditional wiki lets you collaboratively edit text.
 
-## Architecture
+The graph lives in Memgraph and renders in real-time with Sigma.js (WebGL). Nodes and edges are color-coded by type, laid out with ForceAtlas2, and organized into communities you can zoom into hierarchically. Click any node to see its properties, connections, source documents, and financial amounts.
 
-```
-graphiki/
-├── graph.py                # ETL: Memgraph loader + JSON exporter
-├── data/
-│   ├── seed.py             # Graph seed data (nodes, edges)
-│   └── graph.json          # Static Cytoscape.js export
-├── docker-compose.yml      # Memgraph + PostgreSQL + Web
-├── requirements.txt        # Python dependencies
-├── analytics/              # Optional analytics service
-└── web/                    # Next.js frontend + API
-    ├── app/
-    │   ├── page.tsx                    # Main graph page
-    │   ├── auth/signin/page.tsx        # Sign-in page
-    │   └── api/
-    │       ├── auth/[...nextauth]/     # NextAuth.js handler
-    │       ├── graph/                  # Graph data APIs
-    │       ├── proposals/              # Edit proposal CRUD
-    │       ├── audit/                  # Audit log + squash
-    │       ├── admin/                  # User mgmt + direct edits
-    │       ├── views/                  # Saved view CRUD
-    │       └── me/                     # Current user info
-    ├── components/
-    │   ├── graph-canvas-sigma.tsx      # Sigma.js graph renderer
-    │   ├── control-panel.tsx           # Search, filters, controls
-    │   ├── detail-panel.tsx            # Node detail sidebar
-    │   ├── proposal-form.tsx           # Edit proposal submission
-    │   ├── mod-queue.tsx               # Moderation queue
-    │   ├── user-menu.tsx               # Auth dropdown
-    │   ├── audit-log-panel.tsx         # Audit log viewer
-    │   └── ...
-    ├── lib/
-    │   ├── memgraph.ts                 # Neo4j driver singleton
-    │   ├── db/
-    │   │   ├── schema.ts              # Drizzle ORM schema (6 tables)
-    │   │   ├── index.ts               # PostgreSQL connection
-    │   │   └── seed.ts                # Admin/mod user seeder
-    │   ├── auth.ts                     # NextAuth v5 config
-    │   ├── auth-guard.ts              # Role-based access control
-    │   ├── graph-mutations.ts         # Proposal → Cypher executor
-    │   ├── graph-data.ts              # Types + data loading
-    │   └── graph-queries.ts           # Cypher query library
-    └── drizzle.config.ts              # Drizzle Kit config
-```
+Editing follows a proposal-based workflow: users submit changes with a reason, moderators review and approve them, and approved edits are automatically applied to the graph as Cypher queries. Admins can bypass review for direct edits. Every mutation — whether proposed, approved, or directly applied — is recorded in a PostgreSQL audit log with the exact Cypher that was executed.
 
-### Services
-
-```
-[Browser]
-    │
-[Next.js API Routes]   ← NextAuth sessions, role-based guards
-    │          │
-[PostgreSQL]  [Memgraph]
- ├── users       └── graph nodes/edges
- ├── sessions
- ├── proposals
- └── audit_log
-```
-
-- **PostgreSQL** — Users, auth sessions, edit proposals, audit trail
-- **Memgraph** — Graph database (nodes, edges, communities)
-- **Next.js** — Frontend + API routes (App Router)
+Authentication uses NextAuth.js with GitHub OAuth (and a dev credentials provider for local testing). Four roles control access: guests can browse, users can propose edits, mods can review proposals and query the graph, and admins can edit directly and manage users.
 
 ### Auth & Roles
 
