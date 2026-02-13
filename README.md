@@ -1,6 +1,6 @@
-# Graphiki
+# Graphoni
 
-Graphiki is a graph-based wiki web app. It lets teams build, explore, and curate knowledge graphs through a browser — the same way a traditional wiki lets you collaboratively edit text. It's not tied to any specific domain: anything that makes sense as a graph — people and relationships, infrastructure dependencies, research citations, corporate ownership structures — can be a Graphiki wiki.
+Graphoni is a graph-based wiki web app. It lets teams build, explore, and curate knowledge graphs through a browser — the same way a traditional wiki lets you collaboratively edit text. It's not tied to any specific domain: anything that makes sense as a graph — people and relationships, infrastructure dependencies, research citations, corporate ownership structures — can be a Graphoni wiki.
 
 ## How it works
 
@@ -64,7 +64,7 @@ docker compose up -d memgraph postgres
 
 This starts:
 - **Memgraph** — Bolt on `localhost:7687`, Lab UI on `localhost:3000`
-- **PostgreSQL** — `localhost:5432` (user: `graphiki`, password: `graphiki_dev`, db: `graphiki`)
+- **PostgreSQL** — `localhost:5432` (user: `graphoni`, password: `graphoni_dev`, db: `graphoni`)
 
 ### 2. Install dependencies
 
@@ -84,8 +84,8 @@ npm run db:seed
 ```
 
 This creates two dev users:
-- `admin@graphiki.local` (admin role)
-- `mod@graphiki.local` (mod role)
+- `admin@graphoni.local` (admin role)
+- `mod@graphoni.local` (mod role)
 
 ### 4. Configure environment
 
@@ -93,7 +93,7 @@ The default `.env.local` works out of the box for local development:
 
 ```env
 MEMGRAPH_URI=bolt://localhost:7687
-DATABASE_URL=postgresql://graphiki:graphiki_dev@localhost:5432/graphiki
+DATABASE_URL=postgresql://graphoni:graphoni_dev@localhost:5432/graphoni
 NEXTAUTH_URL=http://localhost:3001
 NEXTAUTH_SECRET=dev-secret-please-change-in-production-abc123
 ```
@@ -129,8 +129,8 @@ Open [http://localhost:3001](http://localhost:3001).
 ### Dev sign-in
 
 In development, the sign-in page (`/auth/signin`) has a "Dev Login" form. Enter any of:
-- `admin@graphiki.local` — admin role
-- `mod@graphiki.local` — mod role
+- `admin@graphoni.local` — admin role
+- `mod@graphoni.local` — mod role
 - Any email — auto-creates a user account
 
 ### Database management
@@ -194,7 +194,7 @@ The app is now live at [http://localhost:3001](http://localhost:3001).
 |---|---|---|
 | `DATABASE_URL` | Yes | PostgreSQL connection string |
 | `MEMGRAPH_URI` | Yes | Bolt URI for Memgraph |
-| `NEXTAUTH_URL` | Yes | Public URL of the app (e.g. `https://graphiki.example.com`) |
+| `NEXTAUTH_URL` | Yes | Public URL of the app (e.g. `https://graphoni.example.com`) |
 | `NEXTAUTH_SECRET` | Yes | Random secret for session encryption |
 | `GITHUB_ID` | Yes | GitHub OAuth App client ID |
 | `GITHUB_SECRET` | Yes | GitHub OAuth App client secret |
@@ -206,7 +206,7 @@ Build and push the web image:
 
 ```bash
 cd web
-docker build -t graphiki:latest .
+docker build -t graphoni:latest .
 ```
 
 The image runs migrations on startup, so just point `DATABASE_URL` at your PostgreSQL instance.

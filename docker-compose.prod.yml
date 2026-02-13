@@ -20,14 +20,14 @@ services:
   postgres:
     image: postgres:16-alpine
     environment:
-      POSTGRES_USER: graphiki
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-graphiki_prod}
-      POSTGRES_DB: graphiki
+      POSTGRES_USER: graphoni
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-graphoni_prod}
+      POSTGRES_DB: graphoni
     volumes:
       - postgres-data:/var/lib/postgresql/data
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U graphiki"]
+      test: ["CMD-SHELL", "pg_isready -U graphoni"]
       interval: 10s
       timeout: 5s
       retries: 5

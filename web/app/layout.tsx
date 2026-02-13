@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Graphiki",
+  title: "Graphoni",
   description: "Collaborative network graph exploration and editing",
 };
 

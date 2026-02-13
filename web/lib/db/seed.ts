@@ -7,11 +7,11 @@ async function seed() {
   const pool = new Pool({
     connectionString:
       process.env.DATABASE_URL ||
-      "postgresql://graphiki:graphiki_dev@localhost:5432/graphiki",
+      "postgresql://graphoni:graphoni_dev@localhost:5432/graphoni",
   });
   const db = drizzle(pool);
 
-  const adminEmail = "admin@graphiki.local";
+  const adminEmail = "admin@graphoni.local";
 
   // Check if admin exists
   const existing = await db
@@ -35,7 +35,7 @@ async function seed() {
   }
 
   // Also seed a mod user for dev
-  const modEmail = "mod@graphiki.local";
+  const modEmail = "mod@graphoni.local";
   const existingMod = await db
     .select()
     .from(users)

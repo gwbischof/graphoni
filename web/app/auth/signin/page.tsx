@@ -36,7 +36,7 @@ export default function SignInPage() {
         className="glass-panel rounded-2xl p-8 w-full max-w-sm z-10 space-y-6"
       >
         <div className="text-center space-y-2">
-          <h1 className="text-lg font-medium tracking-wide">Graphiki</h1>
+          <h1 className="text-lg font-medium tracking-wide">Graphoni</h1>
           <p className="text-xs text-muted-foreground">
             Sign in to propose edits and moderate the graph.
           </p>
@@ -73,7 +73,7 @@ export default function SignInPage() {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="admin@graphiki.local"
+                placeholder="admin@graphoni.local"
                 className="h-9 text-xs bg-white/[0.04] border-white/[0.06]"
               />
               <Button

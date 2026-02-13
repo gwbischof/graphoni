@@ -185,7 +185,7 @@ export default function Home() {
         className="glass-panel absolute top-3 left-3 right-3 h-10 rounded-xl z-20 flex items-center justify-between px-4"
       >
         <div className="flex items-center gap-3">
-          <h1 className="text-xs font-medium tracking-wide">Graphiki</h1>
+          <h1 className="text-xs font-medium tracking-wide">Graphoni</h1>
           <div className="w-px h-4 bg-white/8" />
           <span className="text-[10px] font-mono text-muted-foreground">
             {isLoading ? "Loading..." : `${nodeCount} nodes / ${edgeCount} edges`}

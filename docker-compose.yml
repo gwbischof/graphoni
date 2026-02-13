@@ -20,14 +20,14 @@ services:
     ports:
       - "5432:5432"
     environment:
-      POSTGRES_USER: graphiki
-      POSTGRES_PASSWORD: graphiki_dev
-      POSTGRES_DB: graphiki
+      POSTGRES_USER: graphoni
+      POSTGRES_PASSWORD: graphoni_dev
+      POSTGRES_DB: graphoni
     volumes:
       - ./postgres-data:/var/lib/postgresql/data
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U graphiki"]
+      test: ["CMD-SHELL", "pg_isready -U graphoni"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -38,7 +38,7 @@ services:
       - "3001:3001"
     environment:
       MEMGRAPH_URI: bolt://memgraph:7687
-      DATABASE_URL: postgresql://graphiki:graphiki_dev@postgres:5432/graphiki
+      DATABASE_URL: postgresql://graphoni:graphoni_dev@postgres:5432/graphoni
       NEXTAUTH_URL: http://localhost:3001
       NEXTAUTH_SECRET: ${NEXTAUTH_SECRET:-dev-secret-change-in-production}
       GITHUB_ID: ${GITHUB_ID:-}
