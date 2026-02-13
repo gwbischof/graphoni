@@ -14,6 +14,7 @@ const GraphCanvas = dynamic(
 );
 import { ControlPanel } from "@/components/control-panel";
 import { DetailPanel } from "@/components/detail-panel";
+import { ConnectionsPanel } from "@/components/connections-panel";
 import { GraphLegend } from "@/components/graph-legend";
 import { BreadcrumbBar } from "@/components/breadcrumb-bar";
 import { SaveViewDialog } from "@/components/save-view-dialog";
@@ -50,7 +51,9 @@ export default function Home() {
 
   // Selection
   const [selectedNode, setSelectedNode] = useState<NodeData | null>(null);
-  const [selectedEdges, setSelectedEdges] = useState<EdgeData[]>([]);
+  const [selectedEdge, setSelectedEdge] = useState<EdgeData | null>(null);
+  const [selectedEdgeSource, setSelectedEdgeSource] = useState<NodeData | null>(null);
+  const [selectedEdgeTarget, setSelectedEdgeTarget] = useState<NodeData | null>(null);
 
   // Filters
   const [searchQuery, setSearchQuery] = useState("");
@@ -92,9 +95,23 @@ export default function Home() {
 
   // Handlers
   const handleNodeSelect = useCallback(
-    (node: NodeData | null, edges: EdgeData[]) => {
+    (node: NodeData | null) => {
       setSelectedNode(node);
-      setSelectedEdges(edges);
+      // Close connections panel when a node is clicked
+      setSelectedEdge(null);
+      setSelectedEdgeSource(null);
+      setSelectedEdgeTarget(null);
+    },
+    []
+  );
+
+  const handleEdgeSelect = useCallback(
+    (edge: EdgeData, sourceNode: NodeData, targetNode: NodeData) => {
+      setSelectedEdge(edge);
+      setSelectedEdgeSource(sourceNode);
+      setSelectedEdgeTarget(targetNode);
+      // Close detail panel when an edge is clicked
+      setSelectedNode(null);
     },
     []
   );
@@ -140,12 +157,19 @@ export default function Home() {
     setActiveSubtypes(buildAllSubtypes(config));
     setActiveEdgeTypes(new Set(Object.keys(config.edgeTypes)));
     setSelectedNode(null);
-    setSelectedEdges([]);
+    setSelectedEdge(null);
+    setSelectedEdgeSource(null);
+    setSelectedEdgeTarget(null);
   }, [config]);
 
   const handleCloseDetail = useCallback(() => {
     setSelectedNode(null);
-    setSelectedEdges([]);
+  }, []);
+
+  const handleCloseConnections = useCallback(() => {
+    setSelectedEdge(null);
+    setSelectedEdgeSource(null);
+    setSelectedEdgeTarget(null);
   }, []);
 
   const handleSaveView = useCallback(
@@ -267,6 +291,7 @@ export default function Home() {
           activeSubtypes={activeSubtypes}
           activeEdgeTypes={activeEdgeTypes}
           onNodeSelect={handleNodeSelect}
+          onEdgeSelect={handleEdgeSelect}
           onNodeDoubleClick={handleNodeDoubleClick}
           config={config!}
         />
@@ -302,9 +327,18 @@ export default function Home() {
       {/* Detail Panel (right) */}
       <DetailPanel
         node={selectedNode}
-        edges={selectedEdges}
         onClose={handleCloseDetail}
         onProposeEdit={() => setProposalFormOpen(true)}
+        config={config}
+      />
+
+      {/* Connections Panel (right, when edge clicked) */}
+      <ConnectionsPanel
+        edge={selectedEdge}
+        sourceNode={selectedEdgeSource}
+        targetNode={selectedEdgeTarget}
+        elements={graphView.elements}
+        onClose={handleCloseConnections}
         config={config}
       />
 

@@ -21,7 +21,8 @@ interface GraphCanvasSigmaProps {
   searchQuery: string;
   activeSubtypes: Map<string, Set<string>>;
   activeEdgeTypes: Set<string>;
-  onNodeSelect: (node: NodeData | null, edges: EdgeData[]) => void;
+  onNodeSelect: (node: NodeData | null) => void;
+  onEdgeSelect?: (edge: EdgeData, sourceNode: NodeData, targetNode: NodeData) => void;
   onNodeDoubleClick?: (nodeId: string) => void;
   config: GraphConfig;
 }
@@ -32,6 +33,7 @@ export function GraphCanvas({
   activeSubtypes,
   activeEdgeTypes,
   onNodeSelect,
+  onEdgeSelect,
   onNodeDoubleClick,
   config,
 }: GraphCanvasSigmaProps) {
@@ -179,6 +181,7 @@ export function GraphCanvas({
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       defaultDrawNodeHover: drawDarkHover as any,
       defaultEdgeType: "arrow",
+      enableEdgeEvents: true,
       minCameraRatio: 0.05,
       maxCameraRatio: 10,
       itemSizesReference: "screen",
@@ -193,21 +196,22 @@ export function GraphCanvas({
       selectedRef.current = node;
       const attrs = graph.getNodeAttributes(node);
       const nodeData = { id: node, ...attrs } as NodeData;
-
-      // Collect connected edges
-      const edges: EdgeData[] = [];
-      graph.forEachEdge(node, (_key, edgeAttrs, source, target) => {
-        edges.push({
-          id: _key,
-          source,
-          target,
-          edge_type: edgeAttrs.edge_type || "",
-          ...edgeAttrs,
-        } as EdgeData);
-      });
-
-      onNodeSelect(nodeData, edges);
+      onNodeSelect(nodeData);
       refreshReducers();
+    });
+
+    // Click edge
+    sigma.on("clickEdge", ({ edge }) => {
+      if (!onEdgeSelect) return;
+      const edgeAttrs = graph.getEdgeAttributes(edge);
+      const source = graph.source(edge);
+      const target = graph.target(edge);
+      const sourceAttrs = graph.getNodeAttributes(source);
+      const targetAttrs = graph.getNodeAttributes(target);
+      const edgeData = { id: edge, source, target, edge_type: edgeAttrs.edge_type || "", ...edgeAttrs } as EdgeData;
+      const sourceNode = { id: source, ...sourceAttrs } as NodeData;
+      const targetNode = { id: target, ...targetAttrs } as NodeData;
+      onEdgeSelect(edgeData, sourceNode, targetNode);
     });
 
     // Double-click node (expand community)
@@ -220,7 +224,7 @@ export function GraphCanvas({
     // Click canvas (deselect)
     sigma.on("clickStage", () => {
       selectedRef.current = null;
-      onNodeSelect(null, []);
+      onNodeSelect(null);
       refreshReducers();
     });
 
@@ -234,7 +238,7 @@ export function GraphCanvas({
       sigma.kill();
       sigmaRef.current = null;
     };
-  }, [graph, config, getSelectionState, onNodeSelect, onNodeDoubleClick]);
+  }, [graph, config, getSelectionState, onNodeSelect, onEdgeSelect, onNodeDoubleClick]);
 
   // Update reducers when filters/search change
   useEffect(() => {

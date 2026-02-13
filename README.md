@@ -229,6 +229,130 @@ The image runs migrations on startup, so just point `DATABASE_URL` at your Postg
 | `python graph.py query "MATCH ..."` | Run ad-hoc Cypher query |
 | `python graph.py add-person <id> <name> <role>` | Add a person node |
 
+## Python Client & CLI
+
+### Installation
+
+```bash
+uv tool install git+https://github.com/gwbischof/graphoni
+# Or from local clone
+uv tool install ./
+```
+
+### CLI
+
+```bash
+graphoni search "epstein"
+graphoni node jeffrey_epstein --hops 2
+graphoni path jeffrey_epstein ghislaine_maxwell
+graphoni stats
+graphoni add-node --label "New Person" --type Person --reason "..."
+graphoni proposals --status pending
+graphoni approve <id> --comment "looks good"
+```
+
+| Option | Description |
+|---|---|
+| `--url` | Server URL (default: `$GRAPHONI_URL` or `http://localhost:3001`) |
+| `--api-key` | API key (default: `$GRAPHONI_API_KEY`) |
+| `--json` / `-j` | Output raw JSON |
+
+| Command | Description |
+|---|---|
+| `search <query>` | Search nodes (`-n`, `--types`) |
+| `node <id>` | Get node + neighborhood (`--hops`) |
+| `path <from> <to>` | Shortest path (`--max-length`) |
+| `stats` | Graph statistics |
+| `add-node` | Submit add-node proposal (`--label`, `--type`, `--reason`) |
+| `edit-node <id>` | Submit edit-node proposal (`--reason`, `--properties`) |
+| `delete-node <id>` | Submit delete-node proposal (`--reason`) |
+| `add-edge` | Submit add-edge proposal (`--source`, `--target`, `--edge-type`, `--reason`) |
+| `edit-edge <id>` | Submit edit-edge proposal (`--reason`, `--properties`) |
+| `delete-edge <id>` | Submit delete-edge proposal (`--reason`) |
+| `proposals` | List proposals (`--status`, `-n`) |
+| `approve <id>` | Approve proposal (`--comment`) |
+| `reject <id>` | Reject proposal (`--comment`) |
+| `audit` | View audit log (`--node`, `-n`) |
+
+## MCP Server
+
+### Tools
+
+| Tool | Description |
+|---|---|
+| `search` | Text search for nodes by label, ID, name, or notes |
+| `get_node` | Get a node and its neighborhood (connected nodes/edges) |
+| `find_path` | Find shortest path between two nodes |
+| `stats` | Graph statistics (node/edge counts by type) |
+| `query` | Complex graph queries: structured filters, center-node + hops, raw Cypher, community |
+| `add_node` | Submit proposal to add a node |
+| `edit_node` | Submit proposal to edit a node |
+| `delete_node` | Submit proposal to delete a node |
+| `add_edge` | Submit proposal to add an edge |
+| `edit_edge` | Submit proposal to edit an edge |
+| `delete_edge` | Submit proposal to delete an edge |
+| `list_proposals` | List edit proposals (filterable by status) |
+| `approve_proposal` | Approve a pending proposal (auto-applies Cypher) |
+| `reject_proposal` | Reject a pending proposal |
+
+### Claude Code
+
+```bash
+claude mcp add -s user graphoni -- uvx --from "git+https://github.com/gwbischof/graphoni" graphoni-mcp
+```
+
+### Claude Desktop
+
+```json
+{
+  "mcpServers": {
+    "graphoni": {
+      "command": "graphoni-mcp",
+      "env": {
+        "GRAPHONI_URL": "http://localhost:3001",
+        "GRAPHONI_API_KEY": "gk_..."
+      }
+    }
+  }
+}
+```
+
+### Local dev
+
+```bash
+mcp dev mcp_server.py
+```
+
+## Python Usage
+
+```python
+from client import GraphoniClient
+
+client = GraphoniClient("http://localhost:3001", api_key="gk_...")
+
+# Search
+results = client.search("Maxwell", limit=10)
+
+# Get node neighborhood
+data = client.get_node("jeffrey_epstein", hops=2)
+
+# Complex query
+data = client.query({"type": "structured", "nodeTypes": ["Person"], "centerNode": "jeffrey_epstein", "hops": 2})
+
+# Submit edit proposal
+client.add_node(label="New Person", node_type="Person", reason="Adding new source")
+
+# Approve proposal
+client.approve_proposal("uuid-here", comment="Verified")
+```
+
+### Environment Variables
+
+| Variable | Description |
+|---|---|
+| `GRAPHONI_URL` | Server URL (default: `http://localhost:3001`) |
+| `GRAPHONI_API_KEY` | API key for authenticated operations |
+
 ## Features
 
 - **Graph visualization** — Sigma.js with ForceAtlas2 layout, color-coded by type/role

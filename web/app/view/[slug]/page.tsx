@@ -16,7 +16,7 @@ import { GraphLegend } from "@/components/graph-legend";
 import { ViewBar } from "@/components/view-bar";
 import { Button } from "@/components/ui/button";
 
-import type { CytoscapeElement, NodeData, EdgeData, SavedView } from "@/lib/graph-data";
+import type { CytoscapeElement, NodeData, SavedView } from "@/lib/graph-data";
 import type { GraphConfig } from "@/lib/graph-config";
 import { loadGraphConfig } from "@/lib/graph-config";
 
@@ -27,7 +27,6 @@ export default function ViewPage({ params }: { params: Promise<{ slug: string }>
   const [view, setView] = useState<SavedView | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedNode, setSelectedNode] = useState<NodeData | null>(null);
-  const [selectedEdges, setSelectedEdges] = useState<EdgeData[]>([]);
   const [activeSubtypes, setActiveSubtypes] = useState<Map<string, Set<string>>>(new Map());
   const [activeEdgeTypes, setActiveEdgeTypes] = useState<Set<string>>(new Set());
 
@@ -56,9 +55,8 @@ export default function ViewPage({ params }: { params: Promise<{ slug: string }>
       });
   }, [slug]);
 
-  const handleNodeSelect = useCallback((node: NodeData | null, edges: EdgeData[]) => {
+  const handleNodeSelect = useCallback((node: NodeData | null) => {
     setSelectedNode(node);
-    setSelectedEdges(edges);
   }, []);
 
   const nodeCount = elements.filter((e) => e.group === "nodes").length;
@@ -117,8 +115,7 @@ export default function ViewPage({ params }: { params: Promise<{ slug: string }>
       {/* Detail Panel */}
       <DetailPanel
         node={selectedNode}
-        edges={selectedEdges}
-        onClose={() => { setSelectedNode(null); setSelectedEdges([]); }}
+        onClose={() => setSelectedNode(null)}
         onProposeEdit={() => {}}
         config={config}
       />

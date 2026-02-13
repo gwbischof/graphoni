@@ -2,30 +2,19 @@
 
 import { useSession, signIn } from "next-auth/react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, ExternalLink, PenLine, ArrowRight, Zap, LogIn } from "lucide-react";
+import { X, PenLine, Zap, LogIn } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import type { NodeData, EdgeData } from "@/lib/graph-data";
+import type { NodeData } from "@/lib/graph-data";
 import type { GraphConfig } from "@/lib/graph-config";
-import { getNodeColor, getEdgeColor, getStatusStyle } from "@/lib/graph-config";
+import { getNodeColor, getStatusStyle } from "@/lib/graph-config";
 
 interface DetailPanelProps {
   node: NodeData | null;
-  edges: EdgeData[];
   onClose: () => void;
   onProposeEdit: () => void;
   config: GraphConfig | null;
-}
-
-function formatAmount(amount: number): string {
-  if (amount >= 1_000_000) return `$${(amount / 1_000_000).toFixed(1)}M`;
-  if (amount >= 1_000) return `$${(amount / 1_000).toFixed(0)}K`;
-  return `$${amount}`;
-}
-
-function formatEdgeType(type: string) {
-  return type.charAt(0) + type.slice(1).toLowerCase();
 }
 
 function StatusBadge({ status, config }: { status: string; config: GraphConfig }) {
@@ -46,7 +35,7 @@ function getSubtypeValue(node: NodeData, config: GraphConfig): string | undefine
   return node[ntConfig.subtypeField] as string | undefined;
 }
 
-export function DetailPanel({ node, edges, onClose, onProposeEdit, config }: DetailPanelProps) {
+export function DetailPanel({ node, onClose, onProposeEdit, config }: DetailPanelProps) {
   const { data: session } = useSession();
   const color = node && config
     ? getNodeColor(config, node.node_type, getSubtypeValue(node, config))
@@ -147,73 +136,6 @@ export function DetailPanel({ node, edges, onClose, onProposeEdit, config }: Det
                 </div>
               )}
 
-              {/* Connected Edges */}
-              {edges.length > 0 && (
-                <div className="space-y-2">
-                  <div className="text-[10px] font-mono tracking-widest text-muted-foreground uppercase">
-                    Connections ({edges.length})
-                  </div>
-                  <div className="space-y-1.5">
-                    {edges.map((edge) => {
-                      const edgeColor = config
-                        ? getEdgeColor(config, edge.edge_type)
-                        : "#565f89";
-                      const isSource = edge.source === node.id;
-                      const otherEnd = isSource ? edge.target : edge.source;
-                      return (
-                        <div
-                          key={edge.id}
-                          className="p-2 rounded-lg bg-white/[0.02] border border-white/[0.04] hover:bg-white/[0.04] transition-colors"
-                        >
-                          <div className="flex items-center gap-1.5 mb-1">
-                            <span
-                              className="size-1.5 rounded-full shrink-0"
-                              style={{ backgroundColor: edgeColor }}
-                            />
-                            <span
-                              className="text-[10px] font-mono"
-                              style={{ color: edgeColor }}
-                            >
-                              {formatEdgeType(edge.edge_type)}
-                            </span>
-                            <ArrowRight className="size-2.5 text-muted-foreground/50" />
-                            <span className="text-[11px] truncate">
-                              {otherEnd.replace(/_/g, " ")}
-                            </span>
-                          </div>
-                          {edge.description && (
-                            <p className="text-[10px] text-muted-foreground leading-relaxed pl-3">
-                              {edge.description}
-                            </p>
-                          )}
-                          {edge.amount != null && edge.amount > 0 && (
-                            <p className="text-[10px] text-green-400/80 font-mono pl-3">
-                              {formatAmount(edge.amount)}
-                              {edge.date && ` (${edge.date})`}
-                            </p>
-                          )}
-                          {edge.quote && (
-                            <p className="text-[10px] text-blue-300/70 italic pl-3 mt-0.5">
-                              &ldquo;{edge.quote}&rdquo;
-                            </p>
-                          )}
-                          {edge.doc_url && (
-                            <a
-                              href={edge.doc_url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="inline-flex items-center gap-1 text-[10px] text-primary/70 hover:text-primary mt-1 pl-3 transition-colors"
-                            >
-                              <ExternalLink className="size-2.5" />
-                              {edge.source_doc || edge.doc_id || "View doc"}
-                            </a>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
             </div>
           </ScrollArea>
 

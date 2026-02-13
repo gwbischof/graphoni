@@ -1,21 +1,18 @@
 import { NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
+import { requireRole } from "@/lib/auth-guard";
 
 export async function GET() {
-  const session = await auth();
-
-  if (!session?.user) {
-    return NextResponse.json({ authenticated: false }, { status: 401 });
-  }
+  const { user, error } = await requireRole("user");
+  if (error) return error;
 
   return NextResponse.json({
     authenticated: true,
     user: {
-      id: session.user.id,
-      name: session.user.name,
-      email: session.user.email,
-      image: session.user.image,
-      role: session.user.role,
+      id: user!.id,
+      name: user!.name,
+      email: user!.email,
+      image: user!.image,
+      role: user!.role,
     },
   });
 }

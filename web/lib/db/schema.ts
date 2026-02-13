@@ -174,6 +174,29 @@ export const auditLog = pgTable(
   ]
 );
 
+// ── API Keys ──
+
+export const apiKeys = pgTable(
+  "api_keys",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    key: text("key").notNull().unique(), // SHA-256 hash
+    prefix: text("prefix").notNull(), // first 8 chars for display
+    name: text("name").notNull(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at", { mode: "date" }).defaultNow().notNull(),
+    lastUsedAt: timestamp("last_used_at", { mode: "date" }),
+    expiresAt: timestamp("expires_at", { mode: "date" }),
+    revoked: boolean("revoked").default(false).notNull(),
+  },
+  (table) => [
+    index("api_keys_key_idx").on(table.key),
+    index("api_keys_user_idx").on(table.userId),
+  ]
+);
+
 // ── Relations ──
 
 export const usersRelations = relations(users, ({ many }) => ({
@@ -182,6 +205,7 @@ export const usersRelations = relations(users, ({ many }) => ({
   proposals: many(proposals, { relationName: "author" }),
   reviews: many(proposals, { relationName: "reviewer" }),
   auditEntries: many(auditLog),
+  apiKeys: many(apiKeys),
 }));
 
 export const accountsRelations = relations(accounts, ({ one }) => ({
@@ -204,6 +228,10 @@ export const proposalsRelations = relations(proposals, ({ one, many }) => ({
     relationName: "reviewer",
   }),
   auditEntries: many(auditLog),
+}));
+
+export const apiKeysRelations = relations(apiKeys, ({ one }) => ({
+  user: one(users, { fields: [apiKeys.userId], references: [users.id] }),
 }));
 
 export const auditLogRelations = relations(auditLog, ({ one }) => ({
