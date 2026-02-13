@@ -1,12 +1,23 @@
 # Graphiki
 
-Graphiki is a graph-based wiki web app. It lets teams build, explore, and curate knowledge graphs through a browser — the same way a traditional wiki lets you collaboratively edit text.
+Graphiki is a graph-based wiki web app. It lets teams build, explore, and curate knowledge graphs through a browser — the same way a traditional wiki lets you collaboratively edit text. It's not tied to any specific domain: anything that makes sense as a graph — people and relationships, infrastructure dependencies, research citations, corporate ownership structures — can be a Graphiki wiki.
 
-The graph lives in Memgraph and renders in real-time with Sigma.js (WebGL). Nodes and edges are color-coded by type, laid out with ForceAtlas2, and organized into communities you can zoom into hierarchically. Click any node to see its properties, connections, source documents, and financial amounts.
+## How it works
 
-Editing follows a proposal-based workflow: users submit changes with a reason, moderators review and approve them, and approved edits are automatically applied to the graph as Cypher queries. Admins can bypass review for direct edits. Every mutation — whether proposed, approved, or directly applied — is recorded in a PostgreSQL audit log with the exact Cypher that was executed.
+The graph is stored in Memgraph (a Cypher-compatible graph database) and rendered in real-time with Sigma.js over WebGL. Nodes and edges are color-coded by type, laid out with ForceAtlas2, and organized into communities you can zoom into. Click any node to see its properties, connections, and linked documents.
 
-Authentication uses NextAuth.js with GitHub OAuth (and a dev credentials provider for local testing). Four roles control access: guests can browse, users can propose edits, mods can review proposals and query the graph, and admins can edit directly and manage users.
+**Views** are saved queries on the graph. A view might show only money transfers, or messages between people, or ownership chains — any subgraph you can express as a Cypher query. Views can be saved by slug and shared as links.
+
+**Editing** follows a proposal-based workflow: users suggest changes with a reason, moderators review and approve them, and approved edits are automatically applied as Cypher queries. Admins can bypass review for direct edits. Every mutation is recorded in a PostgreSQL audit log.
+
+**The API** exposes everything programmatically — query the graph, submit proposals, and approve edits without touching the UI. This makes it possible to build automations, bulk-import data, or integrate with other tools.
+
+### Current status
+
+Early stage. The core components are connected and working: graph rendering, authentication, proposal workflow, moderation queue, audit log, saved views, and the API. Next up:
+
+- **Custom views** — richer saved queries with filtered graph rendering
+- **AI chat** — ask the graph questions in natural language and get back relevant subgraphs
 
 ### Auth & Roles
 
@@ -14,7 +25,7 @@ Authentication uses NextAuth.js with GitHub OAuth (and a dev credentials provide
 |---|---|
 | **Guest** | Browse graph, view node details |
 | **User** | Submit edit proposals, view own proposals |
-| **Mod** | Approve/reject proposals, view audit log, execute queries |
+| **Mod** | Approve/reject proposals, view audit log, execute Cypher queries |
 | **Admin** | Direct graph edits (bypasses review), manage users, squash audit history |
 
 ### Edit Workflow
@@ -24,6 +35,18 @@ Authentication uses NextAuth.js with GitHub OAuth (and a dev credentials provide
 3. **Mod** reviews and approves/rejects
 4. On approval: Cypher auto-executed against Memgraph, `status: applied`, audit log written
 5. **Admin** can bypass review with "Apply Directly" option (still audit-logged)
+
+### API
+
+| Endpoint | Method | Role | Description |
+|---|---|---|---|
+| `/api/graph/query` | POST | Mod+ | Execute Cypher queries against the graph |
+| `/api/proposals` | GET | User+ | List proposals (filterable by status) |
+| `/api/proposals` | POST | User+ | Submit a new edit proposal |
+| `/api/proposals/[id]` | PATCH | Mod+ | Approve or reject a proposal |
+| `/api/admin/direct-edit` | POST | Admin | Apply an edit directly (bypasses review) |
+| `/api/audit` | GET | Mod+ | Query the audit log |
+| `/api/views` | GET/POST | Guest/User+ | List or create saved views |
 
 ## Prerequisites
 
@@ -213,12 +236,17 @@ The image runs migrations on startup, so just point `DATABASE_URL` at your Postg
 - **Search** — Highlights matching nodes across label, ID, notes
 - **Filters** — Toggle node subtypes and edge types
 - **Detail panel** — Click any node to see properties, connections, quotes, doc links
-- **Edit proposals** — Authenticated users submit changes with a reason, stored in PostgreSQL
-- **Moderation queue** — Mods approve/reject proposals; approved changes auto-apply to Memgraph
-- **Admin direct edits** — Admins bypass review, changes still audit-logged
-- **Audit log** — Full history of all graph mutations with Cypher executed, squash support
 - **Saved views** — Save and share graph queries by slug
-- **Constellation theme** — Animated starfield with mouse parallax, frosted glass panels
+- **Edit proposals** — Users suggest changes, mods approve, auto-applied as Cypher
+- **Admin direct edits** — Admins bypass review, still audit-logged
+- **Audit log** — Full history of all graph mutations with executed Cypher
+- **REST API** — Query the graph, submit proposals, and approve edits programmatically
+- **GitHub OAuth** — Production auth with role-based access control
+
+### Planned
+
+- **Custom views** — Richer saved queries with filtered subgraph rendering
+- **AI chat** — Natural language queries that return relevant subgraphs
 
 ## Tech Stack
 
