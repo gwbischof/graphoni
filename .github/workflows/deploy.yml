@@ -1,0 +1,182 @@
+name: Deploy to korroni.cloud
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    environment: deployment
+
+    permissions:
+      contents: read
+      packages: write
+
+    outputs:
+      image: ${{ steps.image.outputs.image }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Log in to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=ref,event=branch
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./web
+          file: ./web/Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+
+      - name: Output image
+        id: image
+        run: echo "image=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest" >> $GITHUB_OUTPUT
+
+  deploy:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    environment: deployment
+
+    steps:
+      - name: Deploy to korroni.cloud
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          script: |
+            # Set variables
+            CONTAINER_NAME="graphiki-web"
+            IMAGE_NAME="${{ needs.build-and-push.outputs.image }}"
+            NETWORK="${{ secrets.DOCKER_NETWORK || 'root_default' }}"
+            DOMAIN="${{ secrets.DEPLOY_DOMAIN || 'graphiki.korroni.cloud' }}"
+
+            echo "Starting deployment of Graphiki..."
+
+            # Login to GitHub Container Registry
+            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+
+            # --- Ensure infrastructure services are running ---
+
+            # Start Memgraph if not running
+            if ! docker ps --format "table {{.Names}}" | grep -q "^graphiki-memgraph$"; then
+              echo "Starting Memgraph..."
+              docker rm graphiki-memgraph 2>/dev/null || true
+              docker run -d \
+                --name graphiki-memgraph \
+                --restart unless-stopped \
+                --network "$NETWORK" \
+                memgraph/memgraph-mage \
+                --storage-properties-on-edges=true --memory-limit=48000
+              echo "Waiting for Memgraph to be ready..."
+              sleep 10
+            else
+              echo "Memgraph already running"
+            fi
+
+            # Start Postgres if not running
+            if ! docker ps --format "table {{.Names}}" | grep -q "^graphiki-postgres$"; then
+              echo "Starting PostgreSQL..."
+              docker rm graphiki-postgres 2>/dev/null || true
+              docker run -d \
+                --name graphiki-postgres \
+                --restart unless-stopped \
+                --network "$NETWORK" \
+                -e POSTGRES_USER=graphiki \
+                -e POSTGRES_PASSWORD=graphiki_prod \
+                -e POSTGRES_DB=graphiki \
+                -v graphiki-postgres-data:/var/lib/postgresql/data \
+                postgres:16-alpine
+              echo "Waiting for PostgreSQL to be ready..."
+              sleep 10
+            else
+              echo "PostgreSQL already running"
+            fi
+
+            # --- Deploy web container ---
+
+            # Pull the latest image
+            echo "Pulling latest image..."
+            docker pull "$IMAGE_NAME"
+
+            # Stop existing container if running
+            if docker ps --format "table {{.Names}}" | grep -q "^$CONTAINER_NAME$"; then
+              echo "Stopping existing container..."
+              docker stop "$CONTAINER_NAME"
+            fi
+
+            # Remove existing container if it exists
+            if docker ps -a --format "table {{.Names}}" | grep -q "^$CONTAINER_NAME$"; then
+              echo "Removing existing container..."
+              docker rm "$CONTAINER_NAME"
+            fi
+
+            # Run the new container with Traefik labels
+            echo "Starting new container..."
+            docker run -d \
+              --name "$CONTAINER_NAME" \
+              --restart unless-stopped \
+              --network "$NETWORK" \
+              -e DATABASE_URL="${{ secrets.DATABASE_URL }}" \
+              -e MEMGRAPH_URI="bolt://graphiki-memgraph:7687" \
+              -e NEXTAUTH_URL="https://$DOMAIN" \
+              -e NEXTAUTH_SECRET="${{ secrets.NEXTAUTH_SECRET }}" \
+              -e GITHUB_ID="${{ secrets.OAUTH_GITHUB_ID }}" \
+              -e GITHUB_SECRET="${{ secrets.OAUTH_GITHUB_SECRET }}" \
+              -l "traefik.enable=true" \
+              -l "traefik.http.routers.graphiki.rule=Host(\`$DOMAIN\`)" \
+              -l "traefik.http.routers.graphiki.tls=true" \
+              -l "traefik.http.routers.graphiki.tls.certresolver=myresolver" \
+              -l "traefik.http.services.graphiki.loadbalancer.server.port=3001" \
+              "$IMAGE_NAME"
+
+            # Wait for container to be ready
+            echo "Waiting for container to be ready..."
+            sleep 30
+
+            # Check if container is running
+            if docker ps --format "table {{.Names}}" | grep -q "^$CONTAINER_NAME$"; then
+              echo "Container is running!"
+
+              if curl -f -s https://"$DOMAIN"/api/health > /dev/null 2>&1; then
+                echo "Health check passed!"
+              else
+                echo "Health check failed, but container is running"
+                echo "Container logs:"
+                docker logs --tail 50 "$CONTAINER_NAME"
+              fi
+            else
+              echo "Container failed to start!"
+              docker logs "$CONTAINER_NAME"
+              exit 1
+            fi
+
+            # Clean up old images
+            echo "Cleaning up old images..."
+            docker image prune -af
+
+            echo "Deployment completed!"
+            echo "Application available at: https://$DOMAIN"
