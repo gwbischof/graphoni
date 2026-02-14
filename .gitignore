@@ -1,5 +1,6 @@
 postgres-data/
 neo4j-data/
+memgraph-data/
 __pycache__/
 *.pyc
 *.egg-info/
